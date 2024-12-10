@@ -77,6 +77,139 @@ def create_new_user():
     except Exception as e:
         return jsonify({"msg": "Server error", "error": str(e)}), 500
 
+# get planets
+
+@app.route('/planets', methods=['GET'])
+def get_all_planets():
+    try:
+        planets = Planet.query.all()
+        if not planets:
+            return jsonify({"msg": "No planets found"}), 404
+
+        serialized_planets = [planet.serialize() for planet in planets]
+        return jsonify(serialized_planets), 200
+    except Exception as e:
+        return jsonify({"msg": "Server error", "error": str(e)}), 500
+
+@app.route('/planets/<int:planet_id>', methods=['GET'])
+def get_single_planet(planet_id):
+    try:
+        planet = Planet.query.get(planet_id)
+        if not planet:
+            return jsonify({"msg": f"Planet with ID {planet_id} not found"}), 404
+
+        return jsonify(planet.serialize()), 200
+    except Exception as e:
+        return jsonify({"msg": "Server error", "error": str(e)}), 500
+
+# Get favorites
+
+@app.route('/users/<int:user_id>/favorites', methods=['GET'])
+def get_user_favorites(user_id):
+    try:
+        favorites = Favorite.query.filter_by(user_id=user_id).all()
+        if not favorites:
+            return jsonify({"msg": f"No favorites found for user {user_id}"}), 404
+
+        serialized_favorites = [favorite.serialize() for favorite in favorites]
+        return jsonify(serialized_favorites), 200
+    except Exception as e:
+        return jsonify({"msg": "Server error", "error": str(e)}), 500
+
+    
+
+@app.route('/favorite/planet/<int:planet_id>', methods=['POST'])
+def add_favorite_planet(planet_id):
+    try:
+        body = request.json
+        user_id = body.get("user_id")
+        if not user_id:
+            return jsonify({"msg": "User ID is required"}), 400
+
+        planet = Planet.query.get(planet_id)
+        if not planet:
+            return jsonify({"msg": f"Planet with ID {planet_id} not found"}), 404
+
+        new_favorite = Favorite(user_id=user_id, planet_id=planet_id)
+        db.session.add(new_favorite)
+        db.session.commit()
+        return jsonify({"msg": f"Planet {planet_id} added to favorites for user {user_id}"}), 201
+    except Exception as e:
+        return jsonify({"msg": "Server error", "error": str(e)}), 500
+
+    
+    
+    
+@app.route('/favorite/planet/<int:planet_id>', methods=['DELETE'])
+def delete_favorite_planet(planet_id):
+    try:
+        body = request.json
+        user_id = body.get("user_id")  
+        if not user_id:
+            return jsonify({"msg": "User ID is required"}), 400
+
+        favorite = Favorite.query.filter_by(user_id=user_id, planet_id=planet_id).first()
+        if not favorite:
+            return jsonify({"msg": f"Favorite planet with ID {planet_id} not found for user {user_id}"}), 404
+
+        db.session.delete(favorite)
+        db.session.commit()
+        return jsonify({"msg": f"Planet {planet_id} removed from favorites for user {user_id}"}), 200
+    except Exception as e:
+        return jsonify({"msg": "Server error", "error": str(e)}), 500
+
+
+
+
+@app.route('/favorite/people/<int:people_id>', methods=['POST'])
+def add_favorite_people(people_id):
+    try:
+        body = request.json
+        user_id = body.get("user_id") 
+        if not user_id:
+            return jsonify({"msg": "User ID is required"}), 400
+
+      
+        person = People.query.get(people_id)
+        if not person:
+            return jsonify({"msg": f"Person with ID {people_id} not found"}), 404
+
+  
+        new_favorite = Favorite(user_id=user_id, people_id=people_id)
+        db.session.add(new_favorite)
+        db.session.commit()
+        return jsonify({"msg": f"Person {people_id} added to favorites for user {user_id}"}), 201
+    except Exception as e:
+        return jsonify({"msg": "Server error", "error": str(e)}), 500
+
+    
+
+
+@app.route('/favorite/people/<int:people_id>', methods=['DELETE'])
+def delete_favorite_people(people_id):
+    try:
+        body = request.json
+        user_id = body.get("user_id") 
+        if not user_id:
+            return jsonify({"msg": "User ID is required"}), 400
+
+        # Find the favorite
+        favorite = Favorite.query.filter_by(user_id=user_id, people_id=people_id).first()
+        if not favorite:
+            return jsonify({"msg": f"Favorite person with ID {people_id} not found for user {user_id}"}), 404
+
+        db.session.delete(favorite)
+        db.session.commit()
+        return jsonify({"msg": f"Person {people_id} removed from favorites for user {user_id}"}), 200
+    except Exception as e:
+        return jsonify({"msg": "Server error", "error": str(e)}), 500
+
+    
+
+
+
+
+
 # this only runs if `$ python src/app.py` is executed
 if __name__ == '__main__':
     PORT = int(os.environ.get('PORT', 3000))
