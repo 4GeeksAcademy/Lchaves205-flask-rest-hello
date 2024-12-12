@@ -2,14 +2,14 @@
 This module takes care of starting the API Server, Loading the DB and Adding the endpoints
 """
 import os, json
-from flask import Flask, request, jsonify, url_for
+from flask import Flask, request, jsonify
 from flask_migrate import Migrate
 from flask_swagger import swagger
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
-from models import db, User
-#from models import Person
+from models import db, User, People, Planet, Favorite
+
 
 app = Flask(__name__)
 app.url_map.strict_slashes = False
@@ -26,12 +26,10 @@ db.init_app(app)
 CORS(app)
 setup_admin(app)
 
-# Handle/serialize errors like a JSON object
 @app.errorhandler(APIException)
 def handle_invalid_usage(error):
     return jsonify(error.to_dict()), error.status_code
 
-# generate sitemap with all your endpoints
 @app.route('/')
 def sitemap():
     return generate_sitemap(app)
@@ -182,8 +180,6 @@ def add_favorite_people(people_id):
     except Exception as e:
         return jsonify({"msg": "Server error", "error": str(e)}), 500
 
-    
-
 
 @app.route('/favorite/people/<int:people_id>', methods=['DELETE'])
 def delete_favorite_people(people_id):
@@ -193,7 +189,6 @@ def delete_favorite_people(people_id):
         if not user_id:
             return jsonify({"msg": "User ID is required"}), 400
 
-        # Find the favorite
         favorite = Favorite.query.filter_by(user_id=user_id, people_id=people_id).first()
         if not favorite:
             return jsonify({"msg": f"Favorite person with ID {people_id} not found for user {user_id}"}), 404
@@ -204,13 +199,7 @@ def delete_favorite_people(people_id):
     except Exception as e:
         return jsonify({"msg": "Server error", "error": str(e)}), 500
 
-    
 
-
-
-
-
-# this only runs if `$ python src/app.py` is executed
 if __name__ == '__main__':
     PORT = int(os.environ.get('PORT', 3000))
     app.run(host='0.0.0.0', port=PORT, debug=False)
